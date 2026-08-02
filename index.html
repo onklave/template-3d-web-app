@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Onklave 3D web app</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <canvas id="scene"></canvas>
+    <noscript>This application requires JavaScript and WebGL.</noscript>
+    <div id="status" role="status" aria-live="polite">Loading…</div>
+    <!-- The non-visual route to the same content. Universities and other
+         institutional buyers commonly require WCAG conformance, and a canvas
+         alone cannot satisfy it — keep this in step with the scene. -->
+    <noscript-fallback hidden></noscript-fallback>
+    <main id="a11y-content">
+      <h1>Onklave 3D web app</h1>
+      <p>
+        Replace this with a text description of what the scene shows, and keep
+        it in step with the model. It is the accessible equivalent, not filler.
+      </p>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
