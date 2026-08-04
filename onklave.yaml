@@ -1,0 +1,21 @@
+# Onklave deploy manifest.
+#
+# The platform reads THIS file to build and deploy the repo: it clones, builds
+# the image in-cluster, runs the tests, then renders the Deployment, Service
+# and Ingress from the values below. GitHub Actions is not used — nothing in
+# .github/ is read, and a workflow file cannot declare a service.
+#
+# To add a second deployable, add another entry under `services` with its own
+# build context and expose.path (e.g. /api). Exactly one service may use `/`.
+version: 1
+services:
+  - name: app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    runtime:
+      port: 3000
+      healthPath: /health
+    expose:
+      enabled: true
+      path: /
