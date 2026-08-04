@@ -46,14 +46,45 @@ A 3D app has two asset lifecycles, and conflating them is the usual mistake:
 | Rollback | redeploy | a pointer move |
 
 Everything that loads content goes through `resolveAssetUrl()` in
-`src/asset-source.ts`. In development it serves from `public/`. In production,
-set `VITE_CONTENT_BASE_URL` to an Onklave **content release channel** — content
-releases are immutable, signed, and resolved per channel (`stable`, `canary`),
-so promoting or rolling back a model set is a pointer move rather than a
-rebuild.
+`src/asset-source.ts`. Unset, it resolves against the app's own origin —
+`public/`. Set `VITE_CONTENT_BASE_URL` and it resolves against a content host
+instead.
 
 Because every asset URL is behind that one function, switching is a config
 change, not a refactor. Keep it that way.
+
+### The Onklave asset library
+
+A content host that exists today, CC0-1.0, no credentials needed:
+
+```
+https://assets.onklave.app/catalog/index.json              totals + every pack
+https://assets.onklave.app/catalog/packs/<slug>.json       object paths, bytes, sha256, previews
+https://assets.onklave.app/catalog/characters/<slug>.json  clips, skins, accessories
+```
+
+**5,044 models across 50 packs** (median 11 KB, largest 0.9 MB) and **7 rigged
+characters** carrying named animation clips and swappable skins. The catalog is
+plain JSON served with CORS, so an app — or an agent deciding what to build —
+reads it directly without cloning anything.
+
+Point the app at it from `onklave.yaml`:
+
+```yaml
+    build:
+      args:
+        VITE_CONTENT_BASE_URL: https://assets.onklave.app
+        VITE_MODEL_PATH: kenney/3.6.0/car-kit/ambulance.glb
+```
+
+Build args, not runtime env: Vite bakes `VITE_*` when `npm run build` runs in
+the build pod, so setting them on the running container does nothing. They are
+public by construction — never put a secret in one.
+
+A future platform primitive — immutable, signed, channel-resolved content
+releases, so promoting or rolling back a model set is a pointer move — is **not
+built**. When it lands, adopting it changes this one config value, which is why
+the seam exists ahead of it.
 
 ## Choosing a renderer
 

@@ -12,22 +12,32 @@ has real costs, and today you pay them:
 So keep what lives here small — a placeholder or a low-poly stand-in — and prefer
 procedural geometry while the app is still finding its shape.
 
-## Where this is going
+## Use the asset library instead
 
-Content should version and roll back independently of code, on its own cadence.
-The platform primitive for that — an immutable, signed, channel-resolved content
-release — **does not exist yet**. There is no Onklave content release channel to
-point at today, so `public/` is the only supported source in both development and
-production.
+For most 3D apps you do not need to source content at all. The **Onklave asset
+library** is live and CC0-1.0 (commercial use permitted, no attribution
+required):
 
-What does exist is the seam: every asset URL goes through `resolveAssetUrl()`
-(`src/asset-source.ts`), and setting `VITE_CONTENT_BASE_URL` resolves paths
-against an external base instead of `/`. That already works for any static host
-or CDN you control. When content releases land, adopting them is a config change
-rather than a refactor — which is the whole reason the seam exists before the
-thing it points at.
+```
+https://assets.onklave.app/catalog/index.json
+```
 
-Until then, treat a growing `public/` as a signal to revisit, not as the plan.
+5,044 models across 50 packs, plus 7 rigged characters with named animation
+clips and swappable skins. Set `VITE_CONTENT_BASE_URL` to
+`https://assets.onklave.app` — via `onklave.yaml` `build.args`, since Vite bakes
+`VITE_*` at build time — and load by object path. Nothing is downloaded at build
+time and no content enters the bundle.
+
+To pull assets into a repo anyway — offline work, a test fixture, a build step
+that processes them — use `tools/pull.mjs` in the `onklave/asset-library` repo.
+Every download is verified against the catalog's sha256.
+
+The platform primitive for content that versions independently — an immutable,
+signed, channel-resolved content release — **does not exist yet**. The seam
+does: every asset URL goes through `resolveAssetUrl()` (`src/asset-source.ts`),
+so adopting releases later is a config change rather than a refactor.
+
+Treat a growing `public/` as a signal to revisit, not as the plan.
 
 ## Formats
 
