@@ -16,11 +16,13 @@ import {
   Box3,
   Color,
   Group,
+  Matrix4,
   Mesh,
   MeshStandardMaterial,
   Object3D,
   SRGBColorSpace,
   Scene,
+  SkinnedMesh,
   Texture,
   TextureLoader,
   Vector3,
@@ -64,6 +66,71 @@ export function fitToFrame(object: Object3D, fitTo = 2): void {
   }
   const centre = box.getCenter(new Vector3());
   object.position.sub(centre);
+}
+
+/** World-space size and centre of a model, in scene units (metres). */
+export interface Bounds {
+  width: number;
+  height: number;
+  depth: number;
+  center: Vector3;
+}
+
+/**
+ * Measure a model's world-space bounding box, in scene units.
+ *
+ * Use it to scale content of unknown provenance to a size your scene defines —
+ * "this character must stand 1.8 units tall" — rather than trusting the author's
+ * units. Content from different kits is routinely authored at different scales:
+ * the asset library's modular blocks are exactly 1 unit, its rigged characters
+ * are 3.08, and its barrels 0.24. Nothing warns you; the scene just looks wrong.
+ *
+ * Two things worth knowing about the number this returns:
+ *
+ *   1. It is the BIND POSE. A clip that flings an arm overhead is not accounted
+ *      for, and a T-posed character measures nearly as wide as it is tall.
+ *      Right for scaling to a known height; wrong as a collider. Where a server
+ *      is authoritative the collider is the contract and the model is scaled to
+ *      fit it, never the reverse (`.onklave/rules.md`).
+ *   2. A skinned mesh's own node transform is skipped, per glTF — the skeleton
+ *      places the geometry. Transforms ABOVE it still count, so a `fitToFrame`
+ *      scale on the root is honoured. For the library's characters this happens
+ *      to change nothing (their mesh nodes are identity), so it is a
+ *      spec-correctness guard rather than a fix for any model shipped today.
+ */
+export function measureBounds(object: Object3D): Bounds {
+  object.updateWorldMatrix(true, true);
+  const box = new Box3();
+  const part = new Box3();
+  const above = new Matrix4();
+
+  object.traverse((child) => {
+    const mesh = child as Mesh;
+    if (!mesh.isMesh || !mesh.geometry) return;
+    if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+    const local = mesh.geometry.boundingBox;
+    if (!local) return;
+    part.copy(local);
+    if ((mesh as SkinnedMesh).isSkinnedMesh) {
+      // Skip the mesh's own transform, keep everything above it.
+      above.copy(mesh.parent ? mesh.parent.matrixWorld : new Matrix4());
+      part.applyMatrix4(above);
+    } else {
+      part.applyMatrix4(mesh.matrixWorld);
+    }
+    box.union(part);
+  });
+
+  if (box.isEmpty()) {
+    return { width: 0, height: 0, depth: 0, center: new Vector3() };
+  }
+  const size = box.getSize(new Vector3());
+  return {
+    width: size.x,
+    height: size.y,
+    depth: size.z,
+    center: box.getCenter(new Vector3()),
+  };
 }
 
 /**

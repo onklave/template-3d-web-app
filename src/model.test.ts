@@ -5,11 +5,12 @@ import {
   Mesh,
   MeshStandardMaterial,
   SRGBColorSpace,
+  SkinnedMesh,
   Scene,
   Texture,
 } from 'three';
 import { describe, expect, it, vi } from 'vitest';
-import { applySkin, fitToFrame, loadModel } from './model';
+import { applySkin, fitToFrame, loadModel, measureBounds } from './model';
 
 const placeholder = () =>
   new Mesh(new BoxGeometry(1, 1, 1), new MeshStandardMaterial());
@@ -207,5 +208,55 @@ describe('applySkin isCurrent guard', () => {
     expect(result).toBeNull();
     expect(material.map).toBeNull();
     expect(disposed).toHaveBeenCalled();
+  });
+});
+
+describe('measureBounds', () => {
+  it('measures a transformed static mesh in world space', () => {
+    const group = new Group();
+    const mesh = new Mesh(new BoxGeometry(2, 4, 6), new MeshStandardMaterial());
+    group.add(mesh);
+    group.scale.setScalar(0.5);
+
+    const b = measureBounds(group);
+
+    expect(b.width).toBeCloseTo(1);
+    expect(b.height).toBeCloseTo(2);
+    expect(b.depth).toBeCloseTo(3);
+  });
+
+  // glTF: the skeleton places a skinned mesh, so its own node transform is not
+  // applied. Transforms above it still are.
+  it('skips a skinned mesh own transform but honours the root scale', () => {
+    const group = new Group();
+    const skinned = new SkinnedMesh(
+      new BoxGeometry(2, 2, 2),
+      new MeshStandardMaterial()
+    );
+    skinned.scale.setScalar(10); // would give 20 units if wrongly applied
+    group.add(skinned);
+    group.scale.setScalar(0.5);
+
+    const b = measureBounds(group);
+
+    expect(b.width).toBeCloseTo(1);
+    expect(b.height).toBeCloseTo(1);
+  });
+
+  it('returns zeroes for an object with no meshes rather than Infinity', () => {
+    const b = measureBounds(new Group());
+    expect(b).toMatchObject({ width: 0, height: 0, depth: 0 });
+  });
+
+  // The reason this helper exists: scale unknown content to a size the scene
+  // defines instead of trusting the author's units.
+  it('supports scaling a model to a target height', () => {
+    const group = new Group();
+    group.add(new Mesh(new BoxGeometry(1, 3.08, 1), new MeshStandardMaterial()));
+
+    const factor = 1.8 / measureBounds(group).height;
+    group.scale.setScalar(factor);
+
+    expect(measureBounds(group).height).toBeCloseTo(1.8);
   });
 });
