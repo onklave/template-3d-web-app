@@ -67,6 +67,40 @@ grants tools, scopes or paths.
    and textures; three cascades none of them. Swapping models or skins without
    disposing is how a long-lived 3D page reaches a gigabyte of GPU memory.
 
+9. **Clone rigged models with `SkeletonUtils.clone()`, never `.clone()`.** A
+   plain clone shares the skeleton, so every instance animates identically —
+   which reads as a networking or state bug and gets debugged in the wrong
+   place for hours.
+
+10. **Load each distinct model once and clone it.** Fetching per instance is
+    the difference between a 2 MB and a 40 MB load for the same scene.
+
+11. **Never derive collision from loaded meshes when a server is
+    authoritative.** The server knows nothing about art; sizing hitboxes to
+    visuals desyncs clients. Collision is a contract between client and server,
+    and art is chosen to fit it — not the reverse. If the art cannot fit the
+    collider, change the collider on **both** sides deliberately, in one
+    change, or pick different art.
+
+12. **Degrade, never fail, on missing content.** A 404 keeps whatever the app
+    already had — a placeholder, a primitive, the previous model — and logs
+    once. Content lives on another host and fails independently of the code; an
+    app that goes blank because a model is missing has confused the two
+    lifecycles this template exists to separate.
+
+## Scale, before you mix kits
+
+13. **Kits are not authored at a common scale — measure before combining.**
+    Within the asset library, `nature-kit` cliff blocks are an exact 1×1×1 m
+    modular grid, `survival-kit` barrels are 0.24 m, and `castle-kit` flags are
+    0.87 m tall. Dropping one beside another without a per-kit normalising
+    factor produces a scene that is wrong in a way screenshots make obvious and
+    unit tests never will.
+
+14. **Prefer a modular kit when geometry must match a collider.** A kit
+    authored on a whole-metre grid makes the visual and the collision box
+    identical by construction, which removes the fitting tolerance entirely.
+
 ## Deploy contract
 
 9. **Keep the Dockerfile, `onklave.yaml` and the server in step.** Port 3000 and

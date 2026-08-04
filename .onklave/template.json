@@ -1,0 +1,6 @@
+{
+  "template": "onklave/template-3d-web-app",
+  "version": "1.2.0",
+  "commit": "0a7f0196d6e668e6732409e7568efbcbb5fcef14",
+  "comment": "Scaffolding provenance. A repo generated from this template keeps this file so drift is DETECTABLE — templates are scaffold-once, and without a marker a repo silently misses every later fix. Compare against the template's current version and read TEMPLATE_CHANGELOG.md for what to retrofit. Bump `version` and `commit` in the same commit that changes the template's contract."
+}
