@@ -13,10 +13,13 @@
  * `VITE_CONTENT_BASE_URL` resolves paths against an external base instead — a
  * static host or CDN you control.
  *
+ * A content host you can point at today: `https://assets.onklave.app` serves the
+ * Onklave asset library (CC0 Kenney packs; catalog at `/catalog/index.json`).
+ * It is a CDN-fronted bucket — an ordinary static host, not a platform primitive.
+ *
  * The platform primitive this is built for — immutable, signed content releases
  * resolved per channel (`stable`, `canary`), so promoting or rolling back
- * content is a pointer move — is NOT built yet. There is nothing to point
- * `VITE_CONTENT_BASE_URL` at on the platform side.
+ * content is a pointer move — is NOT built yet.
  *
  * The seam exists ahead of it deliberately: keeping every asset URL behind this
  * one function is what makes that switch a config change instead of a refactor.
