@@ -1,6 +1,15 @@
-import { BoxGeometry, Group, Mesh, MeshStandardMaterial, Scene } from 'three';
+import {
+  BoxGeometry,
+  Color,
+  Group,
+  Mesh,
+  MeshStandardMaterial,
+  SRGBColorSpace,
+  Scene,
+  Texture,
+} from 'three';
 import { describe, expect, it, vi } from 'vitest';
-import { fitToFrame, loadModel } from './model';
+import { applySkin, fitToFrame, loadModel } from './model';
 
 const placeholder = () =>
   new Mesh(new BoxGeometry(1, 1, 1), new MeshStandardMaterial());
@@ -83,5 +92,101 @@ describe('fitToFrame', () => {
     const empty = new Group();
     expect(() => fitToFrame(empty, 2)).not.toThrow();
     expect(empty.scale.x).toBe(1);
+  });
+});
+
+describe('applySkin', () => {
+  /** A model shaped like the rigged characters: one mesh, one tinted material. */
+  function skinnable(): { model: Group; material: MeshStandardMaterial } {
+    const material = new MeshStandardMaterial();
+    // What a character ships with: a grey baseColorFactor and no texture.
+    material.color = new Color(0.8, 0.8, 0.8);
+    const model = new Group();
+    model.add(new Mesh(new BoxGeometry(1, 1, 1), material));
+    return { model, material };
+  }
+
+  const skinLoader = () => {
+    const texture = new Texture();
+    return { texture, loader: { loadAsync: vi.fn().mockResolvedValue(texture) } };
+  };
+
+  it('does not fetch when there is no skin path', async () => {
+    const { model } = skinnable();
+    const loader = { loadAsync: vi.fn() };
+
+    expect(await applySkin(model, '', { loader })).toBeNull();
+    expect(loader.loadAsync).not.toHaveBeenCalled();
+  });
+
+  it('assigns the texture to every mesh material', async () => {
+    const { model, material } = skinnable();
+    const { texture, loader } = skinLoader();
+    // `needsUpdate` is a write-only setter in three; the observable effect is
+    // the version bump that forces the shader program to be rebuilt — needed
+    // here because the material had no map slot before the skin arrived.
+    const before = material.version;
+
+    const result = await applySkin(model, 'kenney/skins/a.png', { loader });
+
+    expect(result).toBe(texture);
+    expect(material.map).toBe(texture);
+    expect(material.version).toBeGreaterThan(before);
+  });
+
+  // Colour textures are authored in sRGB; three assumes linear. Without this
+  // the skin renders washed out — a wrong picture, not an error.
+  it('marks the texture as sRGB', async () => {
+    const { model } = skinnable();
+    const { texture, loader } = skinLoader();
+
+    await applySkin(model, 'kenney/skins/a.png', { loader });
+
+    expect(texture.colorSpace).toBe(SRGBColorSpace);
+  });
+
+  // glTF's UV origin is the opposite of three's default for loose textures.
+  it('does not flip the texture vertically', async () => {
+    const { model } = skinnable();
+    const { texture, loader } = skinLoader();
+
+    await applySkin(model, 'kenney/skins/a.png', { loader });
+
+    expect(texture.flipY).toBe(false);
+  });
+
+  // A baseColorFactor below 1 MULTIPLIES the texture, so a correct skin still
+  // renders dim. This is the subtlest of the three and the easiest to ship.
+  it('resets the material tint to white so the skin is not darkened', async () => {
+    const { model, material } = skinnable();
+    const { loader } = skinLoader();
+    expect(material.color.r).toBeCloseTo(0.8);
+
+    await applySkin(model, 'kenney/skins/a.png', { loader });
+
+    expect(material.color.r).toBe(1);
+    expect(material.color.g).toBe(1);
+    expect(material.color.b).toBe(1);
+  });
+
+  it('disposes the previous skin so swapping does not leak', async () => {
+    const { model, material } = skinnable();
+    const first = new Texture();
+    const disposed = vi.spyOn(first, 'dispose');
+    material.map = first;
+
+    await applySkin(model, 'kenney/skins/b.png', {
+      loader: { loadAsync: vi.fn().mockResolvedValue(new Texture()) },
+    });
+
+    expect(disposed).toHaveBeenCalled();
+  });
+
+  it('keeps the model on screen when the skin fails to load', async () => {
+    const { model, material } = skinnable();
+    const loader = { loadAsync: vi.fn().mockRejectedValue(new Error('404')) };
+
+    expect(await applySkin(model, 'kenney/skins/gone.png', { loader })).toBeNull();
+    expect(material.map).toBeNull();
   });
 });
