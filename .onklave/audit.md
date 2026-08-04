@@ -194,6 +194,21 @@ Toolchain / base images:
 
 `onklave.yaml` was not modified.
 
+## Reconciliation pass (2026-08-04, same day)
+
+Cross-template alignment after all seven audits completed:
+
+- **`server/go.mod` `go 1.23` → `go 1.26`.** The directive sets the GODEBUG
+  compatibility baseline, so building with the 1.26 builder against a 1.23
+  directive baked three releases of hardening opt-outs into the binary. This
+  template had the largest remaining gap of the set. Verified the same way the
+  go-web-service audit did: `go version -m` on the rebuilt binary now emits no
+  `DefaultGODEBUG` line. `go vet`, `go test` and `go build` re-run green inside
+  `golang:1.26-alpine`.
+- Consequence to know: with `GOTOOLCHAIN=local`, a developer on a Go older than
+  1.26 can no longer build this server; the default `GOTOOLCHAIN=auto` downloads
+  the toolchain and is unaffected.
+
 ## Open items
 1. **Decide whether to hold `typescript` at 6.x.** TS 7 is the native port and
    is npm `latest`; everything in this repo passes under it, including a
