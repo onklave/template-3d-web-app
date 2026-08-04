@@ -190,3 +190,22 @@ describe('applySkin', () => {
     expect(material.map).toBeNull();
   });
 });
+
+describe('applySkin isCurrent guard', () => {
+  it('discards a superseded skin instead of painting it on', async () => {
+    const material = new MeshStandardMaterial();
+    const model = new Group();
+    model.add(new Mesh(new BoxGeometry(1, 1, 1), material));
+    const late = new Texture();
+    const disposed = vi.spyOn(late, 'dispose');
+
+    const result = await applySkin(model, 'kenney/skins/late.png', {
+      loader: { loadAsync: vi.fn().mockResolvedValue(late) },
+      isCurrent: () => false,
+    });
+
+    expect(result).toBeNull();
+    expect(material.map).toBeNull();
+    expect(disposed).toHaveBeenCalled();
+  });
+});

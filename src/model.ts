@@ -89,11 +89,22 @@ export function fitToFrame(object: Object3D, fitTo = 2): void {
  * The previous map is disposed — swapping skins is the common interaction here,
  * and leaking a texture per swap is how a gallery reaches a gigabyte of GPU
  * memory.
+ *
+ * `isCurrent` guards the race that this interaction invites: a texture fetch is
+ * slow enough that a visitor can pick a different model, or a different skin,
+ * before it lands. Without the guard the late response paints itself onto
+ * whatever is on screen now. Pass a predicate that captures what was current at
+ * call time — a generation counter is the usual shape:
+ *
+ *     const gen = ++this.generation;
+ *     await applySkin(model, path, { isCurrent: () => gen === this.generation });
+ *
+ * A superseded skin is disposed rather than applied, and the call resolves null.
  */
 export async function applySkin(
   object: Object3D,
   path: string,
-  options: { loader?: SkinLoader } = {}
+  options: { loader?: SkinLoader; isCurrent?: () => boolean } = {}
 ): Promise<Texture | null> {
   if (!path) return null;
   const loader = options.loader ?? new TextureLoader();
@@ -102,6 +113,13 @@ export async function applySkin(
     texture = await loader.loadAsync(resolveAssetUrl(path));
   } catch (err) {
     console.warn(`content: could not load skin "${path}"`, err);
+    return null;
+  }
+
+  // Superseded while in flight: drop it rather than paint it onto whatever the
+  // visitor moved on to. Disposed, because it was fully decoded before we got here.
+  if (options.isCurrent && !options.isCurrent()) {
+    texture.dispose();
     return null;
   }
 
