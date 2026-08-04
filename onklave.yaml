@@ -13,6 +13,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # Build-time config. Vite bakes VITE_* when `npm run build` runs inside
+      # the build pod, so these cannot be set on the running container — the
+      # platform passes them to the image build as Docker --build-args.
+      #
+      # Values here are PUBLIC: build args are readable from image history and a
+      # VITE_ value is compiled into the shipped bundle. A secret-looking key is
+      # rejected by contract validation. Uncomment to load models from the
+      # Onklave asset library (CC0) instead of this repo's `public/`:
+      #
+      # args:
+      #   VITE_CONTENT_BASE_URL: https://assets.onklave.app
+      #   VITE_MODEL_PATH: kenney/3.6.0/car-kit/ambulance.glb
     runtime:
       port: 3000
       healthPath: /health
