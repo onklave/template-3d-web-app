@@ -25,8 +25,14 @@ small dependency-free Go server serves it on **:3000** with a **`/health`**
 route. The image runs non-root on a read-only root filesystem — no writable
 paths, no privileged ports.
 
-Keep the Dockerfile, port and health route in step with the project's deploy
-preset. If they drift, the readiness probe fails and the pod CrashLoops.
+The contract is declared in `onklave.yaml` at the repo root — build context,
+port, health path and exposed route. The platform reads that file; GitHub
+Actions is not used, and a workflow cannot declare a service. To add a second
+deployable, add another entry under `services` with its own build context and
+`expose.path`.
+
+Keep the Dockerfile, port and health route in step with `onklave.yaml`. If they
+drift, the readiness probe fails and the pod CrashLoops.
 
 ## Code vs content — the thing to get right
 
@@ -94,4 +100,5 @@ src/asset-source.ts content URL resolution (engine-neutral)
 public/             dev-time content; production content comes from a release
 server/             tiny Go static server used by the image
 Dockerfile          Vite build -> distroless, non-root, :3000, /health
+onklave.yaml        deploy manifest the platform reads (build, port, route)
 ```
