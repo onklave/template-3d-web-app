@@ -9,14 +9,24 @@ import {
   DirectionalLight,
   Mesh,
   MeshStandardMaterial,
+  Object3D,
   PerspectiveCamera,
   Scene,
   WebGLRenderer,
 } from 'three';
+import { disposeObject, loadModel } from './model';
 
 export interface SceneHandle {
   dispose(): void;
 }
+
+/**
+ * Content path of the model to display, e.g.
+ * `kenney/3.6.0/car-kit/ambulance.glb`. Empty (the default) keeps the
+ * procedural placeholder and issues no request — a template that 404s on every
+ * dev run teaches you to ignore its errors. See `.env.example`.
+ */
+const MODEL_PATH = import.meta.env['VITE_MODEL_PATH'] ?? '';
 
 export function createScene(canvas: HTMLCanvasElement): SceneHandle {
   const renderer = new WebGLRenderer({ canvas, antialias: true });
@@ -48,9 +58,19 @@ export function createScene(canvas: HTMLCanvasElement): SceneHandle {
   const mesh = new Mesh(geometry, material);
   scene.add(mesh);
 
+  // What the animation loop spins: the placeholder now, the model once it lands.
+  let subject: Object3D = mesh;
+  let loaded: Object3D | null = null;
+  void loadModel(scene, MODEL_PATH, mesh).then((model) => {
+    if (model) {
+      loaded = model;
+      subject = model;
+    }
+  });
+
   const clock = new Clock();
   renderer.setAnimationLoop(() => {
-    mesh.rotation.y += clock.getDelta() * 0.6;
+    subject.rotation.y += clock.getDelta() * 0.6;
     renderer.render(scene, camera);
   });
 
@@ -67,6 +87,9 @@ export function createScene(canvas: HTMLCanvasElement): SceneHandle {
       window.removeEventListener('resize', onResize);
       geometry.dispose();
       material.dispose();
+      // The loaded model owns geometries and materials the placeholder does
+      // not; `loadModel` already disposed the placeholder if it swapped.
+      if (loaded) disposeObject(loaded);
       renderer.dispose();
     },
   };
