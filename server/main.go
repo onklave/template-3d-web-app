@@ -23,7 +23,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:    ":" + port,
-		Handler: newHandler(http.Dir(root)),
+		Handler: newHandler(http.Dir(root), loadOnklaveBrowserConfig()),
 		// A stalled client must not be able to hold a connection open forever
 		// (Slowloris). There is deliberately no WriteTimeout: 3D content is
 		// large, and a phone on a slow link pulling a model is a legitimate
@@ -38,13 +38,17 @@ func main() {
 }
 
 // newHandler builds the serving stack over a file system root. Taking the root
-// as an argument is what makes the behaviour below testable.
-func newHandler(fsys http.FileSystem) http.Handler {
+// (and the Onklave browser config, nil off-platform) as arguments is what
+// makes the behaviour below testable.
+func newHandler(fsys http.FileSystem, onklaveCfg *onklaveBrowserConfig) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
+	// Browser-safe Onklave config (error-tracking ingest key); 404 when the
+	// pod has no platform identity — see onklave.go.
+	mux.HandleFunc("/__onklave/config.json", onklaveConfigHandler(onklaveCfg))
 	mux.Handle("/", http.FileServer(indexOnlyDirs{fsys}))
 	return securityHeaders(mux)
 }

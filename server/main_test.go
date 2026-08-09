@@ -21,7 +21,7 @@ func get(t *testing.T, path string) *http.Response {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodGet, path, nil)
 	rec := httptest.NewRecorder()
-	newHandler(testFS()).ServeHTTP(rec, req)
+	newHandler(testFS(), nil).ServeHTTP(rec, req)
 	return rec.Result()
 }
 

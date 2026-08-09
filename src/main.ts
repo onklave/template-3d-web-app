@@ -19,6 +19,11 @@
  */
 
 import { createScene } from './scene';
+import { initOnklave } from './onklave';
+
+// Fire-and-forget: error tracking starts when the platform serves a config,
+// and silently stays off everywhere else (see src/onklave.ts).
+void initOnklave();
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
 const status = document.querySelector<HTMLElement>('#status');
