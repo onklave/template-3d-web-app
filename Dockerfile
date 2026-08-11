@@ -14,7 +14,7 @@
 #
 # NEVER pass a secret this way: build args are readable from image history and a
 # VITE_ value is compiled into the shipped JavaScript.
-FROM node:24-alpine AS web
+FROM node:26-alpine AS web
 WORKDIR /app
 ARG VITE_CONTENT_BASE_URL=""
 ARG VITE_MODEL_PATH=""
