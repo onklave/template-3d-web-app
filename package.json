@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@onklave/errors": "^0.1.0",
+    "@onklave/errors": "^0.1.4",
     "three": "^0.185.1"
   },
   "devDependencies": {
