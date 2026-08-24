@@ -26,7 +26,7 @@ COPY . .
 RUN npm run build
 
 # 2. Build the static file server (static binary, no libc).
-FROM golang:1.26-alpine AS server
+FROM golang:1.27-alpine AS server
 WORKDIR /src
 COPY server/go.mod ./
 COPY server/*.go ./
